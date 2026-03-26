@@ -5,11 +5,13 @@ import { WeekStartsOn } from "../ch/datecalc";
 import { format } from "../ch/localize";
 
 interface Props {
+  label: string;
   selectedDate: Date;
   onDateChanged: (date: Date) => void;
   weekStartsOn: WeekStartsOn;
 }
 interface ButtonProps {
+  label: string;
   selectedDate: Date;
   onClick: (e: React.MouseEvent<HTMLElement>) => void;
 }
@@ -22,7 +24,7 @@ class DateInputButton extends React.Component<ButtonProps> {
     }
     return (
       <button className="app-button" onClick={this.props.onClick}>
-        <span>{format(this.props.selectedDate)}</span>
+        <span>{this.props.label}: {format(this.props.selectedDate)}</span>
       </button>
     );
   }
@@ -33,6 +35,7 @@ export class DateControl extends React.Component<Props> {
   render() {
     const input = (
       <DateInputButton
+        label={this.props.label}
         selectedDate={this.props.selectedDate}
         onClick={() => {}}
       />

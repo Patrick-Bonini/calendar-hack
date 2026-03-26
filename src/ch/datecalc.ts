@@ -1,4 +1,5 @@
 import {
+  addDays,
   subDays,
   startOfWeek,
   endOfWeek,
@@ -6,7 +7,7 @@ import {
   differenceInCalendarDays,
 } from "date-fns";
 
-import { dayOfWeek, PlanDates } from "types/app";
+import { AnchorType, dayOfWeek, PlanDates } from "types/app";
 
 export const WeekStartsOnValues = {
   Sunday: 0,
@@ -18,13 +19,21 @@ export type WeekStartsOn =
   (typeof WeekStartsOnValues)[keyof typeof WeekStartsOnValues];
 
 // plan always has numOfDays % 7 === 0
-export function calcPlanDates(
+export function calcPlanDatesFromAnchor(
   numWeeksInPlan: number,
-  planEndsOn: Date,
+  anchorType: AnchorType,
+  anchorDate: Date,
   weekStartsOn: WeekStartsOn,
 ): PlanDates {
   const daysInPlan = numWeeksInPlan * 7;
-  const planStartsOn = subDays(planEndsOn, daysInPlan - 1);
+  const planStartsOn =
+    anchorType === "end"
+      ? subDays(anchorDate, daysInPlan - 1)
+      : startOfDay(anchorDate);
+  const planEndsOn =
+    anchorType === "end"
+      ? startOfDay(anchorDate)
+      : addDays(planStartsOn, daysInPlan - 1);
   const end = startOfDay(endOfWeek(planEndsOn, { weekStartsOn: weekStartsOn }));
   const start = startOfDay(
     startOfWeek(planStartsOn, { weekStartsOn: weekStartsOn }),
@@ -42,6 +51,15 @@ export function calcPlanDates(
     weekCount: weekCount,
   };
   return result;
+}
+
+// Backward compatible wrapper: existing behavior anchors by end date.
+export function calcPlanDates(
+  numWeeksInPlan: number,
+  planEndsOn: Date,
+  weekStartsOn: WeekStartsOn,
+): PlanDates {
+  return calcPlanDatesFromAnchor(numWeeksInPlan, "end", planEndsOn, weekStartsOn);
 }
 
 export function getDaysHeader(weekStartsOn: WeekStartsOn): dayOfWeek[] {

@@ -1,4 +1,4 @@
-import { calcPlanDates } from "./datecalc";
+import { calcPlanDates, calcPlanDatesFromAnchor } from "./datecalc";
 
 describe("Date Calc", function () {
   describe("race on Sunday", function () {
@@ -180,5 +180,38 @@ describe("Date Calc", function () {
     });
     // week starts on Saturday
     // week starts on Sunday
+  });
+
+  describe("start-date anchor", function () {
+    it("maps first workout day to selected start date", function () {
+      const aMonday = new Date(2020, 3, 13);
+      expect(calcPlanDatesFromAnchor(2, "start", aMonday, 1)).toEqual({
+        start: new Date(2020, 3, 13),
+        planStartDate: aMonday,
+        planEndDate: new Date(2020, 3, 26),
+        end: new Date(2020, 3, 26),
+        weekCount: 2,
+      });
+    });
+
+    it("handles month and year boundaries", function () {
+      const dec30 = new Date(2025, 11, 30);
+      expect(calcPlanDatesFromAnchor(1, "start", dec30, 1)).toEqual({
+        start: new Date(2025, 11, 29),
+        planStartDate: dec30,
+        planEndDate: new Date(2026, 0, 5),
+        end: new Date(2026, 0, 11),
+        weekCount: 2,
+      });
+    });
+
+    it("mode switch preserves the selected anchor date", function () {
+      const selectedDate = new Date(2026, 0, 2);
+      const endAnchored = calcPlanDatesFromAnchor(2, "end", selectedDate, 1);
+      const startAnchored = calcPlanDatesFromAnchor(2, "start", selectedDate, 1);
+
+      expect(endAnchored.planEndDate).toEqual(selectedDate);
+      expect(startAnchored.planStartDate).toEqual(selectedDate);
+    });
   });
 });

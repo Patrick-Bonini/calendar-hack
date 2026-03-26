@@ -1,7 +1,8 @@
 import { eachDayOfInterval } from "date-fns";
-import { calcPlanDates, WeekStartsOn } from "./datecalc";
+import { calcPlanDatesFromAnchor, WeekStartsOn } from "./datecalc";
 import { DateGrid, RacePlan } from "./dategrid";
 import {
+  AnchorType,
   DayDetails,
   dayOfWeek,
   PlannedWorkout,
@@ -39,12 +40,14 @@ function getWorkouts(trainingPlan: TrainingPlan): PlannedWorkout[] {
 
 export function build(
   trainingPlan: TrainingPlan,
-  raceDate: Date,
+  anchorDate: Date,
   weekStartsOn: WeekStartsOn,
+  anchorType: AnchorType = "end",
 ): RacePlan {
-  const planDates = calcPlanDates(
+  const planDates = calcPlanDatesFromAnchor(
     trainingPlan.schedule.length,
-    raceDate,
+    anchorType,
+    anchorDate,
     weekStartsOn,
   );
   const workoutsToPlace = getWorkouts(trainingPlan);

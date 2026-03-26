@@ -21,15 +21,16 @@ import { PlanDetailsCard } from "./components/PlanDetailsCard";
 import { WeekStartsOn, WeekStartsOnValues } from "./ch/datecalc";
 import WeekStartsOnPicker from "./components/WeekStartsOnPicker";
 import { useMountEffect } from "./ch/hooks";
-import { Units, PlanSummary, dayOfWeek } from "types/app";
+import { AnchorType, Units, PlanSummary, dayOfWeek } from "types/app";
 import { getLocaleUnits } from "./ch/localize";
 
 const App = () => {
-  const [{ u, p, d, s }, setq] = useQueryParams({
+  const [{ u, p, d, s, a }, setq] = useQueryParams({
     u: StringParam,
     p: StringParam,
     d: DateParam,
     s: NumberParam,
+    a: StringParam,
   });
   const [selectedUnits, setSelectedUnits] = useState<Units>(
     u === "mi" || u === "km" ? u : getLocaleUnits(),
@@ -40,14 +41,17 @@ const App = () => {
   var [weekStartsOn, setWeekStartsOn] = useState<WeekStartsOn>(
     s === 0 || s === 1 || s === 6 ? s : WeekStartsOnValues.Monday,
   );
-  var [planEndDate, setPlanEndDate] = useState(
+  var [anchorType, setAnchorType] = useState<AnchorType>(
+    a === "start" ? "start" : "end",
+  );
+  var [anchorDate, setAnchorDate] = useState(
     d && isAfter(d, new Date())
       ? d
       : addWeeks(endOfWeek(new Date(), { weekStartsOn: weekStartsOn }), 20),
   );
 
   useMountEffect(() => {
-    initialLoad(selectedPlan, planEndDate, selectedUnits, weekStartsOn);
+    initialLoad(selectedPlan, anchorDate, selectedUnits, weekStartsOn, anchorType);
   });
 
   const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
@@ -63,54 +67,88 @@ const App = () => {
     plan: PlanSummary,
     date: Date,
     weekStartsOn: WeekStartsOn,
+    anchorType: AnchorType,
   ) => {
     return {
       u: units,
       p: plan[0],
       d: date,
       s: weekStartsOn,
+      a: anchorType,
     };
   };
 
   const initialLoad = async (
     plan: PlanSummary,
-    endDate: Date,
+    date: Date,
     units: Units,
     weekStartsOn: WeekStartsOn,
+    anchorType: AnchorType,
   ) => {
-    const racePlan = build(await repo.fetch(plan), endDate, weekStartsOn);
+    const racePlan = build(await repo.fetch(plan), date, weekStartsOn, anchorType);
     setRacePlan(racePlan);
     setUndoHistory([...undoHistory, racePlan]);
-    setq(getParams(units, plan, endDate, weekStartsOn));
+    setq(getParams(units, plan, date, weekStartsOn, anchorType));
   };
 
   const onSelectedPlanChange = async (plan: PlanSummary) => {
-    const racePlan = build(await repo.fetch(plan), planEndDate, weekStartsOn);
+    const racePlan = build(
+      await repo.fetch(plan),
+      anchorDate,
+      weekStartsOn,
+      anchorType,
+    );
     setSelectedPlan(plan);
     setRacePlan(racePlan);
     setUndoHistory([racePlan]);
-    setq(getParams(selectedUnits, plan, planEndDate, weekStartsOn));
+    setq(getParams(selectedUnits, plan, anchorDate, weekStartsOn, anchorType));
   };
 
-  const onSelectedEndDateChange = async (date: Date) => {
-    const racePlan = build(await repo.fetch(selectedPlan), date, weekStartsOn);
-    setPlanEndDate(date);
+  const onSelectedAnchorDateChange = async (date: Date) => {
+    const racePlan = build(
+      await repo.fetch(selectedPlan),
+      date,
+      weekStartsOn,
+      anchorType,
+    );
+    setAnchorDate(date);
     setRacePlan(racePlan);
     setUndoHistory([racePlan]);
-    setq(getParams(selectedUnits, selectedPlan, date, weekStartsOn));
+    setq(getParams(selectedUnits, selectedPlan, date, weekStartsOn, anchorType));
+  };
+
+  const onAnchorTypeChanged = async (newAnchorType: AnchorType) => {
+    const racePlan = build(
+      await repo.fetch(selectedPlan),
+      anchorDate,
+      weekStartsOn,
+      newAnchorType,
+    );
+    setAnchorType(newAnchorType);
+    setRacePlan(racePlan);
+    setUndoHistory([racePlan]);
+    setq(
+      getParams(
+        selectedUnits,
+        selectedPlan,
+        anchorDate,
+        weekStartsOn,
+        newAnchorType,
+      ),
+    );
   };
 
   const onSelectedUnitsChanged = (u: Units) => {
     setSelectedUnits(u);
-    setq(getParams(u, selectedPlan, planEndDate, weekStartsOn));
+    setq(getParams(u, selectedPlan, anchorDate, weekStartsOn, anchorType));
   };
 
   const onWeekStartsOnChanged = async (v: WeekStartsOn) => {
-    const racePlan = build(await repo.fetch(selectedPlan), planEndDate, v);
+    const racePlan = build(await repo.fetch(selectedPlan), anchorDate, v, anchorType);
     setWeekStartsOn(v);
     setRacePlan(racePlan);
     setUndoHistory([racePlan]);
-    setq(getParams(selectedUnits, selectedPlan, planEndDate, v));
+    setq(getParams(selectedUnits, selectedPlan, anchorDate, v, anchorType));
   };
 
   function swapDates(d1: Date, d2: Date): void {
@@ -159,8 +197,11 @@ const App = () => {
       <PlanAndDate
         availablePlans={repo.available}
         selectedPlan={selectedPlan}
-        selectedDate={planEndDate}
-        dateChangeHandler={onSelectedEndDateChange}
+        selectedDate={anchorDate}
+        anchorType={anchorType}
+        racePlan={racePlan}
+        dateChangeHandler={onSelectedAnchorDateChange}
+        anchorTypeChangeHandler={onAnchorTypeChanged}
         selectedPlanChangeHandler={onSelectedPlanChange}
         weekStartsOn={weekStartsOn}
       />
