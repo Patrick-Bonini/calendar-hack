@@ -16,7 +16,7 @@ const UnitsButtons = ({ units, unitsChangeHandler }: Props) => {
 
   return (
     <IconContext.Provider value={{}}>
-      <div className="units-panel">
+      <div className="units-panel" role="radiogroup" aria-label="Distance units">
         <Radio
           id="radio-mi"
           name="radio-units"

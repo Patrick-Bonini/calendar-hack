@@ -30,9 +30,17 @@ const PlanPicker = ({
   ));
 
   return (
-    <select className="select" value={selectedPlan[1]} onChange={handleChange}>
-      {planOptions}
-    </select>
+    <div className="picker-field">
+      <label className="field-label" htmlFor="plan-picker">Training plan</label>
+      <select
+        id="plan-picker"
+        className="select"
+        value={selectedPlan[1]}
+        onChange={handleChange}
+      >
+        {planOptions}
+      </select>
+    </div>
   );
 };
 

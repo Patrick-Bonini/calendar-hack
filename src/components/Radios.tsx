@@ -24,6 +24,7 @@ export const Radio = ({
         name={name}
         type="radio"
         value={value}
+        aria-label={labelTxt}
         checked={value === currentValue}
         onChange={changeCb}
       />

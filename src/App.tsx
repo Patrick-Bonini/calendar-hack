@@ -87,7 +87,7 @@ const App = () => {
   ) => {
     const racePlan = build(await repo.fetch(plan), date, weekStartsOn, anchorType);
     setRacePlan(racePlan);
-    setUndoHistory([...undoHistory, racePlan]);
+    setUndoHistory([racePlan]);
     setq(getParams(units, plan, date, weekStartsOn, anchorType));
   };
 
@@ -155,7 +155,7 @@ const App = () => {
     if (racePlan) {
       const newRacePlan = swap(racePlan, d1, d2);
       setRacePlan(newRacePlan);
-      setUndoHistory([...undoHistory, newRacePlan]);
+      setUndoHistory((history) => [...history, newRacePlan]);
     }
   }
 
@@ -163,7 +163,7 @@ const App = () => {
     if (racePlan) {
       const newRacePlan = swapDow(racePlan, dow1, dow2);
       setRacePlan(newRacePlan);
-      setUndoHistory([...undoHistory, newRacePlan]);
+      setUndoHistory((history) => [...history, newRacePlan]);
     }
   }
 
@@ -186,10 +186,13 @@ const App = () => {
   }
 
   function undoHandler() {
-    if (undoHistory?.length >= 0) {
-      undoHistory.pop();
+    if (undoHistory.length <= 1) {
+      return;
     }
-    setRacePlan(undoHistory[undoHistory.length - 1]);
+
+    const newHistory = undoHistory.slice(0, -1);
+    setUndoHistory(newHistory);
+    setRacePlan(newHistory[newHistory.length - 1]);
   }
 
   return (
@@ -205,29 +208,59 @@ const App = () => {
         selectedPlanChangeHandler={onSelectedPlanChange}
         weekStartsOn={weekStartsOn}
       />
-      <div className="second-toolbar">
-        <div className="units">
-          <UnitsButtons
-            units={selectedUnits}
-            unitsChangeHandler={onSelectedUnitsChanged}
-          />
-        </div>
-      </div>
-      <div className="second-toolbar">
-        <button className="app-button" onClick={downloadIcalHandler}>Download iCal</button>
-        <button className="app-button" onClick={downloadCsvHandler}>Download CSV</button>
-        <UndoButton
-          disabled={undoHistory.length <= 1}
-          undoHandler={undoHandler}
-        />
+      <div className="controls-grid">
+        <section className="control-section" aria-label="Plan settings">
+          <h2 className="control-title">Settings</h2>
+          <div className="control-row">
+            <div className="control-field">
+              <span className="field-label">Distance units</span>
+              <div className="units">
+                <UnitsButtons
+                  units={selectedUnits}
+                  unitsChangeHandler={onSelectedUnitsChanged}
+                />
+              </div>
+            </div>
+            <div className="control-field">
+              <WeekStartsOnPicker
+                weekStartsOn={weekStartsOn}
+                changeHandler={onWeekStartsOnChanged}
+                showHeading={false}
+              />
+            </div>
+          </div>
+        </section>
+        <section className="control-section" aria-label="Plan actions">
+          <h2 className="control-title">Actions</h2>
+          <div className="control-row control-actions">
+            <details className="export-menu">
+              <summary className="app-button app-button--primary export-summary">Export plan</summary>
+              <div className="export-options">
+                <button
+                  className="app-button app-button--menu"
+                  onClick={downloadIcalHandler}
+                  disabled={!racePlan}
+                >
+                  iCalendar (.ics)
+                </button>
+                <button
+                  className="app-button app-button--menu"
+                  onClick={downloadCsvHandler}
+                  disabled={!racePlan}
+                >
+                  CSV (.csv)
+                </button>
+              </div>
+            </details>
+            <UndoButton
+              className="app-button--ghost"
+              disabled={undoHistory.length <= 1}
+              undoHandler={undoHandler}
+            />
+          </div>
+        </section>
       </div>
       <PlanDetailsCard racePlan={racePlan} />
-      <div className="second-toolbar">
-        <WeekStartsOnPicker
-          weekStartsOn={weekStartsOn}
-          changeHandler={onWeekStartsOnChanged}
-        />
-      </div>
       <div className="main-ui">
         {racePlan && (
           <CalendarGrid

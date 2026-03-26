@@ -4,9 +4,14 @@ import { WeekStartsOn, WeekStartsOnValues } from "../ch/datecalc";
 interface Props {
   weekStartsOn: WeekStartsOn;
   changeHandler: (v: WeekStartsOn) => void;
+  showHeading?: boolean;
 }
 
-const WeekStartsOnPicker = ({ weekStartsOn, changeHandler }: Props) => {
+const WeekStartsOnPicker = ({
+  weekStartsOn,
+  changeHandler,
+  showHeading = true,
+}: Props) => {
   const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {
     const newValue = Number(event.target.value) as WeekStartsOn;
     changeHandler(newValue);
@@ -14,8 +19,14 @@ const WeekStartsOnPicker = ({ weekStartsOn, changeHandler }: Props) => {
 
   return (
     <div className="week-start-picker">
-      <h3>Week starts on</h3>
-      <select className="select" value={weekStartsOn} onChange={handleChange}>
+      {showHeading && <h3>Week starts on</h3>}
+      <label className="field-label" htmlFor="week-starts-on">Week starts on</label>
+      <select
+        id="week-starts-on"
+        className="select"
+        value={weekStartsOn}
+        onChange={handleChange}
+      >
         <option key="monday" value={WeekStartsOnValues.Monday}>
           Monday
         </option>

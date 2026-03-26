@@ -36,35 +36,54 @@ const PlanAndDate = ({
       : racePlan?.planDates.planStartDate;
   const derivedLabel =
     anchorType === "start" ? "Computed end date" : "Computed start date";
+  const weekCount = racePlan?.dateGrid.weekCount;
 
   return (
     <div className="plan-and-date">
-      <PlanPicker
-        availablePlans={availablePlans}
-        selectedPlan={selectedPlan}
-        planChangeHandler={selectedPlanChangeHandler}
-      />
-      <div className="anchor-type-picker">
-        <h3>schedule by</h3>
-        <select
-          className="select"
-          value={anchorType}
-          onChange={(e) =>
-            anchorTypeChangeHandler(e.currentTarget.value as AnchorType)
-          }
-        >
-          <option value="start">Start date</option>
-          <option value="end">End date</option>
-        </select>
+      <div className="plan-and-date-card">
+        <h3 className="section-title">Training plan</h3>
+        <PlanPicker
+          availablePlans={availablePlans}
+          selectedPlan={selectedPlan}
+          planChangeHandler={selectedPlanChangeHandler}
+        />
+        <p className="plan-meta">
+          <strong>{selectedPlan[2]}</strong>
+          {weekCount ? ` - ${weekCount} weeks` : ""}
+        </p>
+        <p className="control-hint">
+          Choose the base schedule here. You can still customize workouts below using drag-and-drop.
+        </p>
       </div>
-      <h3>{modeLabel}</h3>
-      <DateControl
-        label={dateLabel}
-        selectedDate={selectedDate}
-        onDateChanged={dateChangeHandler}
-        weekStartsOn={weekStartsOn}
-      />
-      <h3>{derivedLabel}: {derivedDate ? format(derivedDate) : "-"}</h3>
+      <div className="plan-and-date-card">
+        <h3 className="section-title">Schedule anchor</h3>
+        <div className="anchor-type-picker picker-field">
+          <label className="field-label" htmlFor="anchor-type-picker">Schedule by</label>
+          <select
+            id="anchor-type-picker"
+            className="select"
+            value={anchorType}
+            onChange={(e) =>
+              anchorTypeChangeHandler(e.currentTarget.value as AnchorType)
+            }
+          >
+            <option value="start">Start date</option>
+            <option value="end">End date</option>
+          </select>
+        </div>
+        <div className="picker-field">
+          <span className="field-label">{modeLabel}</span>
+          <DateControl
+            label={dateLabel}
+            selectedDate={selectedDate}
+            onDateChanged={dateChangeHandler}
+            weekStartsOn={weekStartsOn}
+          />
+        </div>
+        <p className="derived-date">
+          <strong>{derivedLabel}:</strong> {derivedDate ? format(derivedDate) : "-"}
+        </p>
+      </div>
     </div>
   );
 };

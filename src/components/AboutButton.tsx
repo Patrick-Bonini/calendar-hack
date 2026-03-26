@@ -6,7 +6,7 @@ const AboutButton = () => {
   return (
     <IconContext.Provider value={{}}>
       <div className="tool-button">
-        <NavLink to="/about">
+        <NavLink to="/about" aria-label="About" title="About">
           <FaInfoCircle style={{ verticalAlign: "middle" }} />
         </NavLink>
       </div>

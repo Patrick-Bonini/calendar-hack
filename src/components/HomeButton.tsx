@@ -6,7 +6,7 @@ const HomeButton = () => {
   return (
     <IconContext.Provider value={{}}>
       <div className="tool-button">
-        <NavLink to="/">
+        <NavLink to="/" aria-label="Home" title="Home">
             <FaHome style={{ verticalAlign: "middle" }} />
         </NavLink>
       </div>
