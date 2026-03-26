@@ -54,6 +54,10 @@ function lineValue(block: string, key: string): string {
   return match ? match[1].trim() : "";
 }
 
+function toIcsDate([year, month, day]: [number, number, number]): string {
+  return `${year}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
+}
+
 it("should clean exported events for real plans without hardcoded workout strings", () => {
   const planFiles = [
     "hansons_adv_mara.json",
@@ -81,12 +85,31 @@ it("should clean exported events for real plans without hardcoded workout string
     expect(text).toContain("DESCRIPTION:Week 1:");
     expect(text).not.toContain("Weekly distance:");
 
+    const totalsBlock = events.find((eventBlock) =>
+      eventBlock.includes("SUMMARY:Training Plan Weekly Totals"),
+    );
+    expect(totalsBlock).toBeDefined();
+
+    const expectedStart = toIcsDate(toDate(racePlan.dateGrid.weeks[0].days[0].date));
+    expect(totalsBlock as string).toContain(
+      `DTSTART;VALUE=DATE:${expectedStart}`,
+    );
+    expect(totalsBlock as string).toContain("TRANSP:TRANSPARENT");
+    expect(totalsBlock as string).toContain(
+      "X-MICROSOFT-CDO-BUSYSTATUS:FREE",
+    );
+    expect(totalsBlock as string).toMatch(/DESCRIPTION:Week 1:[^\r\n]*\\nWeek 2:/);
+
     // Rule checks on generated output, independent of specific workout values.
     events.forEach((eventBlock) => {
       const summary = lineValue(eventBlock, "SUMMARY");
       const description = lineValue(eventBlock, "DESCRIPTION");
       const normalizedSummary = summary.toLowerCase().trim();
       const normalizedDescription = description.toLowerCase().trim();
+
+      if (summary === "Training Plan Weekly Totals") {
+        return;
+      }
 
       expect(normalizedSummary).not.toBe("rest");
       expect(normalizedSummary).not.toBe("rest or cross-train");

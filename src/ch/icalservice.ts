@@ -39,6 +39,7 @@ export function toDate(d: Date): [number, number, number] {
 export function toIcal(plan: RacePlan, units: Units): string | undefined {
   const events = new Array<EventAttributes>();
   let weeks = plan.dateGrid.weeks;
+  const firstWeekStart = weeks[0]?.days[0]?.date || plan.planDates.start;
 
   const weeklyTotals = weeks
     .map((week, i) => {
@@ -53,11 +54,12 @@ export function toIcal(plan: RacePlan, units: Units): string | undefined {
   if (weeklyTotals.length > 0) {
     events.push({
       title: "Training Plan Weekly Totals",
-      uid: `${plan.planDates.planStartDate.toISOString()}-weekly-totals`,
-      timestamp: Date.now(),
+      uid: `${firstWeekStart.toISOString()}-weekly-totals`,
       description: weeklyTotals.join("\n"),
-      start: toDate(plan.planDates.planStartDate),
-      end: toDate(addDays(plan.planDates.planStartDate, 1)),
+      start: toDate(firstWeekStart),
+      end: toDate(addDays(firstWeekStart, 1)),
+      transp: "TRANSPARENT",
+      busyStatus: "FREE",
     });
   }
 
@@ -85,7 +87,6 @@ export function toIcal(plan: RacePlan, units: Units): string | undefined {
         events.push({
           title: safeTitle,
           uid: `${currWorkout.date.toISOString()}-${i}-${j}`,
-          timestamp: Date.now(),
           description: desc,
           start: toDate(currWorkout.date),
           end: toDate(addDays(currWorkout.date, 1)), // end dates are non-inclusive in iCal
