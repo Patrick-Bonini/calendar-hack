@@ -58,6 +58,37 @@ function toIcsDate([year, month, day]: [number, number, number]): string {
   return `${year}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
 }
 
+function normalizeSummary(value: string): string {
+  return value.trim().toLowerCase().replace(/[\/_-]/g, " ").replace(/\s+/g, " ");
+}
+
+function usesMixedRestSemantics(plan: TrainingPlan): boolean {
+  let hasPureRest = false;
+  let hasCrossTrainRest = false;
+
+  for (const week of plan.schedule) {
+    for (const workout of week.workouts) {
+      const normalized = normalizeSummary(workout.title || "");
+      if (normalized === "rest" || normalized === "rest day" || normalized === "off day") {
+        hasPureRest = true;
+      }
+      if (
+        normalized.includes("cross train") ||
+        normalized.includes("cross training") ||
+        normalized.includes("strength training")
+      ) {
+        hasCrossTrainRest = true;
+      }
+
+      if (hasPureRest && hasCrossTrainRest) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 it("should clean exported events for real plans without hardcoded workout strings", () => {
   const planFiles = [
     "hansons_adv_mara.json",
@@ -69,6 +100,7 @@ it("should clean exported events for real plans without hardcoded workout string
     const fullPath = join(process.cwd(), "public", "plans", "json", planFile);
     const raw = JSON.parse(readFileSync(fullPath, "utf8"));
     const trainingPlan = normalizePlan(raw);
+    const planHasMixedRestSemantics = usesMixedRestSemantics(trainingPlan);
     const racePlan = build(
       trainingPlan,
       new Date(2026, 9, 25),
@@ -81,24 +113,39 @@ it("should clean exported events for real plans without hardcoded workout string
     const text = unfoldIcs(ics as string);
     const events = text.match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || [];
     expect(events.length).toBeGreaterThan(0);
-    expect(text).toContain("SUMMARY:Training Plan Weekly Totals");
+    expect(text).toContain("SUMMARY:Training Plan Weekly Total");
     expect(text).toContain("DESCRIPTION:Week 1:");
     expect(text).not.toContain("Weekly distance:");
 
-    const totalsBlock = events.find((eventBlock) =>
-      eventBlock.includes("SUMMARY:Training Plan Weekly Totals"),
+    const totalsBlocks = events.filter((eventBlock) =>
+      eventBlock.includes("SUMMARY:Training Plan Weekly Total"),
     );
-    expect(totalsBlock).toBeDefined();
+    expect(totalsBlocks.length).toBeGreaterThan(0);
+
+    const weeksWithDistance = racePlan.dateGrid.weeks.filter((week) => {
+      const distance = week.days.reduce((acc, day) => {
+        const d = day.event?.dist;
+        if (typeof d === "number") {
+          return acc + d;
+        }
+        if (Array.isArray(d) && d.length > 0) {
+          return acc + d[0];
+        }
+        return acc;
+      }, 0);
+      return distance > 0;
+    });
+    expect(totalsBlocks.length).toBe(weeksWithDistance.length);
 
     const expectedStart = toIcsDate(toDate(racePlan.dateGrid.weeks[0].days[0].date));
-    expect(totalsBlock as string).toContain(
+    expect(totalsBlocks[0] as string).toContain(
       `DTSTART;VALUE=DATE:${expectedStart}`,
     );
-    expect(totalsBlock as string).toContain("TRANSP:TRANSPARENT");
-    expect(totalsBlock as string).toContain(
+    expect(totalsBlocks[0] as string).toContain("TRANSP:TRANSPARENT");
+    expect(totalsBlocks[0] as string).toContain(
       "X-MICROSOFT-CDO-BUSYSTATUS:FREE",
     );
-    expect(totalsBlock as string).toMatch(/DESCRIPTION:Week 1:[^\r\n]*\\nWeek 2:/);
+    expect(totalsBlocks[0] as string).toMatch(/DESCRIPTION:Week 1:/);
 
     // Rule checks on generated output, independent of specific workout values.
     events.forEach((eventBlock) => {
@@ -107,15 +154,27 @@ it("should clean exported events for real plans without hardcoded workout string
       const normalizedSummary = summary.toLowerCase().trim();
       const normalizedDescription = description.toLowerCase().trim();
 
-      if (summary === "Training Plan Weekly Totals") {
+      if (summary === "Training Plan Weekly Total") {
         return;
       }
 
-      expect(normalizedSummary).not.toBe("rest");
-      expect(normalizedSummary).not.toBe("rest or cross-train");
+      const isPureRest =
+        normalizedSummary === "rest" ||
+        normalizedSummary === "rest day" ||
+        normalizedSummary === "off day";
+      const isCrossTrainRest =
+        normalizedSummary.includes("cross train") ||
+        normalizedSummary.includes("cross training") ||
+        normalizedSummary.includes("strength training");
+
+      expect(isCrossTrainRest).toBe(false);
+      if (!planHasMixedRestSemantics) {
+        expect(isPureRest).toBe(false);
+      }
       expect(normalizedSummary.includes("training week")).toBe(false);
       expect(normalizedSummary.includes("distance")).toBe(false);
       expect(normalizedSummary.includes(" with ")).toBe(false);
+      expect(normalizedSummary.includes("consisting of")).toBe(false);
 
       if (description) {
         expect(normalizedDescription).not.toBe(normalizedSummary);
